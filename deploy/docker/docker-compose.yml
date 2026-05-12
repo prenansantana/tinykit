@@ -8,9 +8,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Coolify: declare this service needs a public FQDN on port 3000.
-      # Coolify populates the value at deploy time from the resource's domain setting.
-      - SERVICE_FQDN_CRUD_ONE_3000
+      # Coolify magic var: declares this service should be reachable on the
+      # public domain and routed to container port 3000. Convention matches
+      # official Coolify templates (e.g. SERVICE_URL_GRAFANA_3000).
+      - SERVICE_URL_CRUD_ONE_3000
 
       # Required: AI Provider
       - LLM_PROVIDER=${LLM_PROVIDER:-openai}
