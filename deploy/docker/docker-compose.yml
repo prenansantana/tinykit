@@ -5,13 +5,13 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/Dockerfile
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
-      # Coolify magic var: declares this service should be reachable on the
-      # public domain and routed to container port 3000. Convention matches
-      # official Coolify templates (e.g. SERVICE_URL_GRAFANA_3000).
-      - SERVICE_URL_CRUD_ONE_3000
+      # Coolify magic var: declares this service is reachable on container
+      # port 3000. Coolify generates SERVICE_FQDN_CRUD_ONE (hostname only,
+      # no scheme/port) from the resource's Domain setting in the UI.
+      - SERVICE_FQDN_CRUD_ONE_3000
 
       # Required: AI Provider
       - LLM_PROVIDER=${LLM_PROVIDER:-openai}
@@ -29,6 +29,21 @@ services:
       - workspace_data:/app/workspace
 
     restart: unless-stopped
+
+    # Explicit Traefik labels — bypass Coolify's auto-label generation,
+    # which has been unreliable here. SERVICE_FQDN_CRUD_ONE is populated
+    # by Coolify from the resource Domain setting.
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.crud-one-http.rule=Host(`${SERVICE_FQDN_CRUD_ONE}`)
+      - traefik.http.routers.crud-one-http.entrypoints=http
+      - traefik.http.routers.crud-one-http.middlewares=redirect-to-https
+      - traefik.http.routers.crud-one-https.rule=Host(`${SERVICE_FQDN_CRUD_ONE}`)
+      - traefik.http.routers.crud-one-https.entrypoints=https
+      - traefik.http.routers.crud-one-https.tls=true
+      - traefik.http.routers.crud-one-https.tls.certresolver=letsencrypt
+      - traefik.http.services.crud-one.loadbalancer.server.port=3000
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
 
 volumes:
   pocketbase_data:
