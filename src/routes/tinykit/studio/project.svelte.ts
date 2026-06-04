@@ -121,10 +121,14 @@ export class ProjectStore {
 
                         // Sync when agent_chat changes (indicates agent activity)
                         if (chat_changed) {
-                            // Check if agent just finished (status changed to complete)
                             const incoming_msgs = incoming.agent_chat || [];
-                            const last_msg = incoming_msgs[incoming_msgs.length - 1];
-                            const agent_just_finished = last_msg?.role === 'assistant' && last_msg?.status === 'complete';
+                            // Sync code whenever no message is mid-stream — this catches
+                            // both the "complete" event AND any later updates where the
+                            // agent has clearly finished but the heuristic might miss it
+                            // (e.g. dropped SSE frame, follow-up messages).
+                            const has_running_msg = incoming_msgs.some((m: any) => m?.status === 'running');
+                            const code_changed = incoming.frontend_code !== this.project?.frontend_code;
+                            const should_sync_code = code_changed && !has_running_msg;
 
                             // Only sync fields that actually changed to avoid triggering
                             // unnecessary reactive updates (which can cause false freeze detection)
@@ -139,12 +143,10 @@ export class ProjectStore {
                             this.project = {
                                 ...this.project!,
                                 agent_chat: incoming.agent_chat,
-                                // Only sync fields that actually changed
                                 ...(content_changed ? { content: incoming.content } : {}),
                                 ...(design_changed ? { design: incoming.design } : {}),
                                 ...(data_changed ? { data: incoming.data } : {}),
-                                // Sync code only when agent finishes (prevents lockup during streaming)
-                                ...(agent_just_finished ? { frontend_code: incoming.frontend_code } : {})
+                                ...(should_sync_code ? { frontend_code: incoming.frontend_code } : {})
                             };
                         }
                     }

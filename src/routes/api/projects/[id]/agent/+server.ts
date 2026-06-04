@@ -107,7 +107,7 @@ One-line summary:`
 		let model
 		if (llmConfig.provider === 'anthropic') {
 			const anthropic = createAnthropic({ apiKey: llmConfig.apiKey })
-			model = anthropic('claude-3-5-haiku-latest')
+			model = anthropic('claude-haiku-4-5')
 		} else if (llmConfig.provider === 'gemini') {
 			const google = createGoogleGenerativeAI({ apiKey: llmConfig.apiKey })
 			model = google('gemini-2.0-flash-lite')

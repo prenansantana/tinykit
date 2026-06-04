@@ -353,12 +353,27 @@
         if (is_sending && !is_processing) {
           console.warn("[Agent] Sending timeout - realtime may not be working");
           is_sending = false;
+          // Realtime appears broken — re-fetch the project so we don't miss the
+          // agent's output (otherwise the preview stays stuck on stale code).
+          store.refresh();
         }
       }, 30000); // 30 second timeout
     } else if (sending_timeout) {
       clearTimeout(sending_timeout);
       sending_timeout = null;
     }
+  });
+
+  // When the agent finishes (is_processing flips true→false), do a fallback
+  // refresh. The realtime subscription may have dropped the final SSE frame,
+  // leaving frontend_code stale in the store and the preview empty.
+  let was_processing = false;
+  $effect(() => {
+    const now = is_processing;
+    if (was_processing && !now) {
+      store.refresh();
+    }
+    was_processing = now;
   });
 
   async function clear_messages() {
